@@ -1,0 +1,174 @@
+
+const int buttonPin = 2;
+const int BUZZER = 11;
+
+bool currentlyPressed = false;
+int currentState = 0;
+long startTime = 0;
+unsigned long lastlifted; 
+unsigned long durationPressed = 0;
+
+int dotDuration = 100;
+int dashDuration = 500;
+int shortGap = dotDuration;                                     //time between dots and dashes
+int mediumGap = 1000;                                //time between characters
+int longGap = 3000;                                  //time between words
+int tol = 200;
+
+int code[4] = {0,0,0,0};
+int codeIndex = 0;
+
+const int CLEAR = 0;
+const int DOT = 1;
+const int DASH = 2;
+
+enum WhichStep {
+  START = 0,
+  DASHDOT = 1,
+  READCHAR = 2,
+  SPACEBAR = 3
+} whichstate;
+
+
+char songname[20] = {' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+int songnameIndex = 0;
+
+void resetcode() {
+  for(int i=0;i<10;i++)
+  {code[i] = 0;}
+  codeIndex = 0;
+}
+
+int DotOrDash() {
+  if (durationPressed > (dotDuration - 100) && durationPressed < (dotDuration + tol))
+  { Serial.println("DOT");
+    return DOT;
+  }
+  else if(durationPressed > (dashDuration - tol) && durationPressed < (dashDuration + tol + 400))
+  { Serial.println("DASH");
+  return DASH; }
+  else
+  {Serial.println("fail");
+}
+}
+
+
+int codeToChar(int code[]) {
+if (code[0] == DOT && code[1] == DASH && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'A';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == DOT && code[3] == DOT) 
+{return 'B';} 
+else if(code[0] == DASH && code[1] == DOT && code[2] == DASH && code[3] == DOT) 
+{return 'C';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == DOT && code[3] == CLEAR) 
+{return 'D';}
+else if(code[0] == DOT && code[1] == CLEAR && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'E';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == DASH && code[3] == DOT) 
+{return 'F';}
+else if(code[0] == DASH && code[1] == DASH && code[2] == DOT && code[3] == CLEAR) 
+{return 'G';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == DOT && code[3] == DOT) 
+{return 'H';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'I';}
+else if(code[0] == DOT && code[1] == DASH && code[2] == DASH && code[3] == DASH) 
+{return 'J';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == DASH && code[3] == CLEAR) 
+{return 'K';}
+else if(code[0] == DOT && code[1] == DASH && code[2] == DOT && code[3] == DOT) 
+{return 'L';}
+else if(code[0] == DASH && code[1] == DASH && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'M';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'N';}
+else if(code[0] == DASH && code[1] == DASH && code[2] == DASH && code[3] == CLEAR) 
+{return 'O';}
+else if(code[0] == DOT && code[1] == DASH && code[2] == DASH && code[3] == DOT) 
+{return 'P';}
+else if(code[0] == DASH && code[1] == DASH && code[2] == DOT && code[3] == DASH) 
+{return 'Q';}
+else if(code[0] == DOT && code[1] == DASH && code[2] == DOT && code[3] == CLEAR) 
+{return 'R';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == DOT && code[3] == CLEAR) 
+{return 'S';}
+else if(code[0] == DASH && code[1] == CLEAR && code[2] == CLEAR && code[3] == CLEAR) 
+{return 'T';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == DASH && code[3] == CLEAR) 
+{return 'U';}
+else if(code[0] == DOT && code[1] == DOT && code[2] == DOT && code[3] == DASH) 
+{return 'V';}
+else if(code[0] == DOT && code[1] == DASH && code[2] == DASH && code[3] == CLEAR) 
+{return 'W';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == DOT && code[3] == DASH) 
+{return 'X';}
+else if(code[0] == DASH && code[1] == DOT && code[2] == DASH && code[3] == DASH) 
+{return 'Y';}
+else if(code[0] == DASH && code[1] == DASH && code[2] == DOT && code[3] == DOT) 
+{return 'Z';}
+else
+return '7';
+}
+
+void setup() {
+pinMode(buttonPin, INPUT_PULLUP);
+Serial.begin(115200);
+whichstate = START;
+}
+
+
+void loop() {
+
+currentState = digitalRead(buttonPin);
+if(currentState == 0)
+  tone(BUZZER, 600);
+else if (currentState == 1)
+  noTone(BUZZER);
+
+if(millis() - lastlifted > 75 && currentlyPressed == false && currentState == 0) {
+whichstate = DASHDOT;
+startTime = millis();
+currentlyPressed = true;
+}
+
+if(millis() - startTime > 75 && currentlyPressed == true && currentState == 1) {
+durationPressed = millis() - startTime;
+currentlyPressed = false;
+lastlifted = millis();
+}
+
+if(currentlyPressed == false && currentState == 1)
+{
+
+  int TNP = (millis() - lastlifted); 
+  
+  if (whichstate == DASHDOT && TNP >= shortGap - tol && TNP <= shortGap + tol){
+    code[codeIndex] = DotOrDash();
+    
+    if(code[3] == DOT || code[3] == DASH) 
+    goto allcodefull;
+    
+    codeIndex++;
+    whichstate = READCHAR;
+  }
+
+  else if(whichstate == READCHAR && TNP >= mediumGap - tol && TNP < mediumGap + tol)
+  {
+    allcodefull:
+    songname[songnameIndex] = codeToChar(code);
+    Serial.println("Letter : ");
+    Serial.println(songname[songnameIndex]);
+    songnameIndex++;
+    whichstate = SPACEBAR;
+    resetcode();
+  }
+  
+  if(whichstate == SPACEBAR  && TNP >= longGap - tol && TNP < longGap + tol){
+    Serial.println("Hi");
+    songnameIndex++;
+    whichstate = DASHDOT;
+    }
+}
+
+
+}
